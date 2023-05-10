@@ -1,12 +1,12 @@
 import EC from 'elliptic'
 
 export class Keygen {
-    ec: EC.ec
+    private ec: EC.ec
     constructor () {
         this.ec = new EC.ec('secp256k1');
     }
 
-    genKey() {
+    public genKey(): EC.ec.KeyPair {
         const key = this.ec.genKeyPair();
         return key;
     }

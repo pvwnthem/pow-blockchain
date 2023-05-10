@@ -3,117 +3,104 @@ import { Transaction } from "./Transaction";
 import { Keygen } from "./Keygen";
 
 export class Blockchain {
-    chain: any[]
-    difficulty: number
-    pendingTransactions: Transaction[]
-    transactionPool: Transaction[]
-    reward: number
-    constructor () {
+    private chain: Block[];
+    private difficulty: number;
+    private pendingTransactions: Transaction[];
+    private transactionPool: Transaction[];
+    private reward: number;
+
+    constructor() {
         this.chain = [this.createGenesisBlock()];
         this.difficulty = 4;
-        this.pendingTransactions = []; 
+        this.pendingTransactions = [];
         this.transactionPool = [];
         this.reward = 100;
     }
 
-    createGenesisBlock () {
-        return new Block( Date.now(), [], "0");
+    private createGenesisBlock(): Block {
+        return new Block(Date.now(), [], "0");
     }
 
-    getLastBlock () {
+    private getLastBlock(): Block {
         return this.chain[this.chain.length - 1];
     }
 
-    minePendingTransactions (minerAddress: string) {
-
-        const rewardTx = new Transaction(null, minerAddress, this.reward)
+    public minePendingTransactions(minerAddress: string): void {
+        const rewardTx = new Transaction(null, minerAddress, this.reward);
         this.transactionPool.push(rewardTx); // add rewardTx to transactionPool
-    
-        // create a new block with transactions from pendingTransactions and transactionPool, limited to 1000 transactions
+
         const transactionsForBlock = [...this.pendingTransactions, ...this.transactionPool.slice(0, 1000)];
-        let block = new Block(Date.now(), transactionsForBlock, this.getLastBlock().hash);
+        const block = new Block(Date.now(), transactionsForBlock, this.getLastBlock().getHash());
         block.mineBlock(this.difficulty);
         block.validatedBy = minerAddress;
         console.log("Block Mined!");
         this.chain.push(block);
-    
-        // remove transactions that were included in the newly mined block from both pendingTransactions and transactionPool
+
         this.pendingTransactions = this.pendingTransactions.filter(tx => !transactionsForBlock.includes(tx));
         this.transactionPool = this.transactionPool.filter(tx => !transactionsForBlock.includes(tx));
-        
     }
 
-    addTransaction (transaction: Transaction) {
-        if (!transaction.sender || !transaction.recipient) {
+    public addTransaction(transaction: Transaction): void {
+        if (!transaction.getSender() || !transaction.getRecipient()) {
             throw new Error("Transaction must have a sender and a recipient");
         }
-    
+
         if (!transaction.isValid()) {
             throw new Error("Cannot add an invalid transaction");
         }
-    
-        const walletBalance = this.getBalance(transaction.sender);
-        if (walletBalance < transaction.amount) {
+
+        const walletBalance = this.getBalance(transaction.getSender());
+        if (walletBalance < transaction.getAmount()) {
             throw new Error('Not enough in your wallet to complete the transaction');
         }
-        if (transaction.amount <= 0) {
+        if (transaction.getAmount() <= 0) {
             throw new Error('Transaction amount must be a positive non-zero amount');
         }
-        const pending = this.pendingTransactions.filter(tx => tx.sender === transaction.sender);
+        const pending = this.pendingTransactions.filter(tx => tx.getSender() === transaction.getSender());
         if (pending.length > 0) {
-            const totalPendingAmount = pending.map(tx => tx.amount).reduce((prev, curr) => prev + curr);
-            const totalAmount = totalPendingAmount + transaction.amount;
+            const totalPendingAmount = pending.map(tx => tx.getAmount()).reduce((prev, curr) => prev + curr);
+            const totalAmount = totalPendingAmount + transaction.getAmount();
             if (totalAmount > walletBalance) {
                 throw new Error('Pending transactions for this wallet is higher than its balance.');
             }
         }
-    
+
         this.transactionPool.push(transaction);
         console.log("Added transaction: " + transaction);
     }
 
-    getTransactionPool() {
+    public getTransactionPool(): Transaction[] {
         return this.transactionPool;
     }
 
-    getBalance (address: string) {
+    public getBalance(address: string | null): number {
         let balance = 0;
 
         for (const block of this.chain) {
-            for (const transaction of block.transactions) {
-                
-                if (transaction.sender === address) {
-                    balance -= transaction.amount
+            for (const transaction of block.getTransactions()) {
+
+                if (transaction.getSender() === address) {
+                    balance -= transaction.getAmount();
                 }
 
-                if (transaction.recipient === address) {
-                    balance += transaction.amount
+                if (transaction.getRecipient() === address) {
+                    balance += transaction.getAmount();
                 }
             }
         }
         return balance;
     }
-    validateChain(): boolean {
+
+    public validateChain(): boolean {
         for (let i = 1; i < this.chain.length; i++) {
-          const currentBlock = this.chain[i];
-          const previousBlock = this.chain[i - 1];
-          if (!currentBlock.validateBlock(previousBlock)) {
-            return false;
-          }
+            const currentBlock = this.chain[i];
+            const previousBlock = this.chain[i - 1];
+            if (!currentBlock.validateBlock(previousBlock)) {
+                return false;
+            }
         }
         return true;
-      }
-
-    
-      
-
-      
-      
-      
-      
-      
-      
-      
+    }
 }
 
 
