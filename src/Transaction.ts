@@ -9,12 +9,14 @@ export class Transaction {
     private recipient: string;
     private amount: number;
     private signature: string;
+    public transactionFee: number
 
-    constructor(sender: string | null, recipient: string, amount: number) {
+    constructor(sender: string | null, recipient: string, amount: number, transactionFee: number = 1) {
         this.sender = sender;
         this.recipient = recipient;
         this.amount = amount;
         this.signature = '';
+        this.transactionFee = transactionFee;
     }
 
     private generateHash(): string {
