@@ -95,6 +95,15 @@ export class Blockchain {
         return balance;
     }
 
+    public validatePendingTransactions(): boolean {
+        for (const block of this.chain) {
+            for (const transaction of block.getTransactions()) {
+                if (!transaction.isValid()) return false;
+            }
+        }
+        return true;
+    }
+
     public validateChain(): boolean {
         for (let i = 1; i < this.chain.length; i++) {
             const currentBlock = this.chain[i];
@@ -103,6 +112,7 @@ export class Blockchain {
                 return false;
             }
         }
+        if (!this.validatePendingTransactions()) return false;
         return true;
     }
 }
