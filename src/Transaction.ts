@@ -45,6 +45,11 @@ export class Transaction {
         return this.sender;
     }
 
+    public getSizeInBytes(): number {
+        const jsonString = JSON.stringify(this);
+        return Buffer.from(jsonString).length;
+    }
+
     public isValid(): boolean {
         if (this.sender === null) {
             return true;
