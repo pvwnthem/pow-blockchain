@@ -30,7 +30,7 @@ export class Blockchain {
         const rewardTx = new Transaction(null, minerAddress, this.reward);
         this.transactionPool.push(rewardTx);
 
-        const transactionsForBlock = [...this.pendingTransactions, ...this.transactionPool.slice(0, 1000)];
+        const transactionsForBlock = [...this.pendingTransactions, ...this.getTransactionPool().slice(0, 1000)];
         const block = new Block(Date.now(), transactionsForBlock, this.getLastBlock().getHash());
         block.mineBlock(this.difficulty);
         block.validatedBy = minerAddress;
@@ -74,7 +74,8 @@ export class Blockchain {
     }
 
     public getTransactionPool(): Transaction[] {
-        return this.transactionPool;
+        const sortedTransactions = this.transactionPool.sort((a, b) => b.transactionFee - a.transactionFee);
+        return sortedTransactions;
     }
 
     public getBalance(address: string | null): number {
@@ -84,11 +85,11 @@ export class Blockchain {
             for (const transaction of block.getTransactions()) {
 
                 if (transaction.getSender() === address) {
-                    balance -= transaction.getAmount();
+                    balance -= (transaction.getAmount() - transaction.transactionFee);
                 }
 
                 if (transaction.getRecipient() === address) {
-                    balance += transaction.getAmount();
+                    balance += (transaction.getAmount() - transaction.transactionFee);
                 }
             }
         }
@@ -116,6 +117,10 @@ export class Blockchain {
         return true;
     }
 }
+
+
+// sort transaction pool by fee amount
+
 
 
 // Example Usage
