@@ -1,5 +1,6 @@
 import CryptoJS from 'crypto-js';
 import EC from 'elliptic';
+import { Errors } from "./errors/Errors";
 
 const ec = new EC.ec('secp256k1');
 
@@ -22,7 +23,8 @@ export class Transaction {
 
     public signTransaction(key: any): void {
         if (key.getPublic('hex') !== this.sender) {
-            throw new Error('You cannot sign a transaction for another address!');
+            Errors.handleTransactionError('You cannot sign a transaction for another address!');
+            return
         }
         const hashTx = this.generateHash();
         const signature = key.sign(hashTx, 'base64');
@@ -40,14 +42,15 @@ export class Transaction {
     public getSender(): string | null {
         return this.sender;
     }
-    
+
     public isValid(): boolean {
         if (this.sender === null) {
             return true;
         }
 
         if (!this.signature || this.signature.length === 0) {
-            throw new Error('No signature is present in the transaction!');
+            Errors.handleValidationError('No signature is present in the transaction!');
+            return false;
         }
 
         const pk = ec.keyFromPublic(this.sender, 'hex');

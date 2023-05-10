@@ -1,6 +1,7 @@
 import { Block } from "./Block";
 import { Transaction } from "./Transaction";
 import { Keygen } from "./Keygen";
+import { Errors } from "./errors/Errors";
 
 export class Blockchain {
     private chain: Block[];
@@ -27,13 +28,12 @@ export class Blockchain {
 
     public minePendingTransactions(minerAddress: string): void {
         const rewardTx = new Transaction(null, minerAddress, this.reward);
-        this.transactionPool.push(rewardTx); // add rewardTx to transactionPool
+        this.transactionPool.push(rewardTx);
 
         const transactionsForBlock = [...this.pendingTransactions, ...this.transactionPool.slice(0, 1000)];
         const block = new Block(Date.now(), transactionsForBlock, this.getLastBlock().getHash());
         block.mineBlock(this.difficulty);
         block.validatedBy = minerAddress;
-        console.log("Block Mined!");
         this.chain.push(block);
 
         this.pendingTransactions = this.pendingTransactions.filter(tx => !transactionsForBlock.includes(tx));
@@ -42,31 +42,35 @@ export class Blockchain {
 
     public addTransaction(transaction: Transaction): void {
         if (!transaction.getSender() || !transaction.getRecipient()) {
-            throw new Error("Transaction must have a sender and a recipient");
+            Errors.handleTransactionError("Transaction must have a sender and a recipient");
+            return
         }
 
         if (!transaction.isValid()) {
-            throw new Error("Cannot add an invalid transaction");
+            Errors.handleTransactionError("Cannot add an invalid transaction");
+            return
         }
 
         const walletBalance = this.getBalance(transaction.getSender());
         if (walletBalance < transaction.getAmount()) {
-            throw new Error('Not enough in your wallet to complete the transaction');
+            Errors.handleTransactionError('Not enough in your wallet to complete the transaction');
+            return
         }
         if (transaction.getAmount() <= 0) {
-            throw new Error('Transaction amount must be a positive non-zero amount');
+            Errors.handleTransactionError('Transaction amount must be a positive non-zero amount');
+            return
         }
         const pending = this.pendingTransactions.filter(tx => tx.getSender() === transaction.getSender());
         if (pending.length > 0) {
             const totalPendingAmount = pending.map(tx => tx.getAmount()).reduce((prev, curr) => prev + curr);
             const totalAmount = totalPendingAmount + transaction.getAmount();
             if (totalAmount > walletBalance) {
-                throw new Error('Pending transactions for this wallet is higher than its balance.');
+                Errors.handleTransactionError('Pending transactions for this wallet is higher than its balance.');
+                return
             }
         }
 
         this.transactionPool.push(transaction);
-        console.log("Added transaction: " + transaction);
     }
 
     public getTransactionPool(): Transaction[] {
