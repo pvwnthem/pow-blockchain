@@ -38,6 +38,10 @@ export class Blockchain {
 
         this.pendingTransactions = this.pendingTransactions.filter(tx => !transactionsForBlock.includes(tx));
         this.transactionPool = this.transactionPool.filter(tx => !transactionsForBlock.includes(tx));
+
+        if (this.chain.length % 100000 === 0) {
+            this.reward /= 2;
+        }
     }
 
     public addTransaction(transaction: Transaction): void {
